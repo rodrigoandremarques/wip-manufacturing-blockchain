@@ -1,67 +1,119 @@
 # WIP Manufacturing Blockchain
 
-> **Live Demo →** [wip.rodrigoandremarques.com](https://wip.rodrigoandremarques.com)
+> **Live Demo ?** [wip.rodrigoandremarques.com](https://wip.rodrigoandremarques.com)
 
-A full-stack manufacturing control system that uses a SHA-256 blockchain to create an immutable audit trail of all WIP (Work-in-Progress) movements on the shop floor.
+A full-stack **shop floor control system** that records every manufacturing movement � goods receiving, material issue, operation confirmation, quality inspection, and goods receipt � as an immutable block in a SHA-256 blockchain. Every transaction on the shop floor becomes a tamper-evident, auditable ledger entry.
+
+Built by a SAP S/4HANA specialist, it mirrors real PP (Production Planning) and WM (Warehouse Management) workflows, making it suitable as a lightweight ERP companion or standalone MES (Manufacturing Execution System).
+
+---
 
 ## Live Demo
 
 | Role | Username | Password | Access |
 |------|----------|----------|--------|
-| 👁 Visitor | demo | WIP-Demo-2026! | Read-only — full dashboard visible |
-| 👤 Operator | *(contact owner)* | — | Production movements |
-| 🔑 Admin | *(private)* | — | Full system + user management |
+| ? Visitor | `demo` | `WIP-Demo-2026!` | Full dashboard � read only |
+| ? Operator | *(request access)* | � | All shop floor movements |
+| ? Admin | *(private)* | � | Full system + user management + ERP export |
 
-🔗 **[Open Live Demo](https://wip.rodrigoandremarques.com)**
+? **[Open Live Demo](https://wip.rodrigoandremarques.com)**
 
-## System Modules
+> The system runs on Render's free tier � first request after inactivity may take ~30 seconds to wake up.
 
-- **Production Orders** — full lifecycle (Created → Released → Completed)
-- **WIP Board** — real-time shop floor view by work center
-- **Stock & Movements** — Goods Receiving, Staging, Issue, Confirmation, Receipt
-- **Quality** — Process Inspection
-- **Blockchain Ledger** — SHA-256 chain, tamper-evident, real-time chain validation
-- **Reports** — WIP inventory, movement history, order status
-- **ERP Bridge** — REST API for SAP/Oracle integration
+---
 
-## Technology
+## What the System Does
 
-| Layer | Technology |
-|-------|-----------|
-| Backend | Node.js + Express.js |
-| Blockchain | Custom SHA-256 chain |
-| Auth | HTTP Basic Auth + SHA-256 hashed passwords, multi-role |
-| Hosting | Render.com |
-| Domain | wip.rodrigoandremarques.com |
+### 1. Production Order Lifecycle
+Create a Production Order for a finished product, release it to the shop floor, track it through operations, and close it on completion. Each status change (Created ? Released ? In Progress ? Completed ? Closed) is written to the blockchain.
 
-## API Overview
+### 2. WIP Board � Real-Time Shop Floor View
+A live kanban-style board showing all active Work-in-Progress orders grouped by Work Center. Operators see exactly what is queued, active, and pending confirmation at each machine or assembly station.
 
-All endpoints require HTTP Basic Auth. Visitor accounts are GET-only.
+### 3. Material Flow (Goods Movements)
+The system tracks the full material journey:
+- **Goods Receiving** � raw materials arrive from suppliers and are booked into stock
+- **Staging to Production** � materials move from warehouse to production staging area
+- **Goods Issue** � materials are consumed (issued) against a Production Order
+- **Backflush** � automatic material consumption on operation confirmation
+- **Goods Receipt** � finished goods are received into stock on order completion
+- **Transfer** � internal stock transfers between locations or storage bins
+- **Scrap** � material write-offs with reason codes
+
+### 4. Operation Confirmations
+Operators confirm each routing operation (e.g., Cutting ? Welding ? Assembly ? Painting) with actual quantities, yield, and scrap. Each confirmation records the operator name, work center, and timestamps.
+
+### 5. Quality Management
+Process inspections are logged against Production Orders. QM results (pass/fail, measured values, inspector) are recorded as blockchain entries, providing a permanent quality record.
+
+### 6. Blockchain Audit Trail
+Every event generates a block: `previousHash + payload ? SHA-256 ? thisHash`. The chain is validated in real time. Any tamper attempt breaks the chain and is immediately flagged. Optional Ethereum/Polygon anchoring pins the local chain hash to a public blockchain for external verifiability.
+
+### 7. Material Master & Bill of Materials
+Maintain a material catalogue and multi-level Bills of Material (BOM). The BOM drives automatic component reservation and backflush calculations.
+
+### 8. Work Centers & Routing
+Define Work Centers (machines, assembly lines, cells) with capacity and cost rates. Routings define the sequence of operations for each finished product, including standard times and work center assignments.
+
+### 9. Reports
+- WIP Inventory Summary (stock by material and location)
+- Movement History (filtered by date, material, order)
+- Order Status Report (all orders with quantities and status)
+- BOM Explosion Report
+
+### 10. ERP Bridge
+Admin-only REST endpoints expose production orders and movements in a structured JSON format ready for consumption by SAP, Oracle, or any ERP system via API integration.
+
+---
+
+## Technology Stack
+
+| Layer | Technology | Notes |
+|-------|-----------|-------|
+| Backend | Node.js + Express.js | REST API, ~1,500 lines |
+| Blockchain | Custom SHA-256 chain | In-process, no external dependency |
+| Public Blockchain | Ethereum / Polygon (optional) | Anchors local chain hash on-chain |
+| Authentication | HTTP Basic Auth | SHA-256 hashed passwords, static salt |
+| Authorisation | Role-Based (admin / operator / visitor) | Per-endpoint enforcement |
+| Persistence | JSON flat files | Portable, zero-dependency storage |
+| Frontend | Vanilla JS + HTML/CSS | Single-page app, no framework |
+| Hosting | Render.com | Free tier, auto-deploy from GitHub |
+| Domain | wip.rodrigoandremarques.com | HTTPS via Let's Encrypt |
+
+---
+
+## Repository Structure
+
+This is a **documentation-only** repository. Source code is maintained privately.
 
 ```
-GET  /api/blocks              — Full blockchain ledger
-GET  /api/work-order          — List production orders
-POST /api/work-order          — Create production order
-GET  /api/inventory           — Current stock levels
-POST /api/goods-receiving     — Register goods receipt
-POST /api/goods-issue         — Issue material to production
-POST /api/confirmation        — Confirm operation completion
-GET  /api/reports/wip-summary — WIP summary report
+/
+??? README.md                  ? This file
+??? docs/
+    ??? USER-GUIDE.md          ? How to use the system (operators & visitors)
+    ??? ARCHITECTURE.md        ? Technical design & data model
+    ??? API-REFERENCE.md       ? Full REST API documentation
+    ??? CONFIGURATION.md       ? Deployment & configuration guide
 ```
 
-## Architecture
+---
 
-```
-Browser → HTTP Basic Auth → Express.js → blockchain.js (SHA-256)
-                                       → user-manager.js (roles)
-                                       → persistence.js (JSON store)
-```
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [User Guide](docs/USER-GUIDE.md) | Step-by-step guide for all user roles |
+| [Architecture](docs/ARCHITECTURE.md) | System design, blockchain model, data flow |
+| [API Reference](docs/API-REFERENCE.md) | Complete REST API with request/response examples |
+| [Configuration](docs/CONFIGURATION.md) | Environment variables, deployment, and setup |
+
+---
 
 ## About
 
-Built by **Rodrigo Andre Marques** — SAP S/4HANA & Manufacturing Systems specialist.
+Built by **Rodrigo Andre Marques** � SAP S/4HANA PP/WM specialist and manufacturing systems architect.
 
-- 🌐 [rodrigoandremarques.com](https://rodrigoandremarques.com)
-- 🔗 [Live System](https://wip.rodrigoandremarques.com)
+- ? [rodrigoandremarques.com](https://rodrigoandremarques.com)
+- ? [Live System](https://wip.rodrigoandremarques.com)
 
-*This repository contains documentation only. Source code is in a private repository.*
+*Source code in private repository. Documentation and live demo are public.*
