@@ -1,119 +1,114 @@
 # WIP Manufacturing Blockchain
 
-> **Live Demo ?** [wip.rodrigoandremarques.com](https://wip.rodrigoandremarques.com)
+> **Live Demo:** [wip.rodrigoandremarques.com](https://wip.rodrigoandremarques.com)
 
-A full-stack **shop floor control system** that records every manufacturing movement Ñ goods receiving, material issue, operation confirmation, quality inspection, and goods receipt Ñ as an immutable block in a SHA-256 blockchain. Every transaction on the shop floor becomes a tamper-evident, auditable ledger entry.
+A full-stack shop floor control system that records every manufacturing movement as an immutable block in a SHA-256 blockchain. Goods receiving, material issue, operation confirmations, quality results, and finished goods receipts are all persisted as tamper-evident ledger entries with a cryptographic chain linking every event.
 
-Built by a SAP S/4HANA specialist, it mirrors real PP (Production Planning) and WM (Warehouse Management) workflows, making it suitable as a lightweight ERP companion or standalone MES (Manufacturing Execution System).
+Built by a SAP S/4HANA specialist, the system mirrors standard PP (Production Planning) and WM (Warehouse Management) workflows from ERP practice, making it suitable as a lightweight MES (Manufacturing Execution System) or an ERP integration companion.
 
 ---
 
 ## Live Demo
 
-| Role | Username | Password | Access |
-|------|----------|----------|--------|
-| ? Visitor | `demo` | `WIP-Demo-2026!` | Full dashboard Ñ read only |
-| ? Operator | *(request access)* | Ñ | All shop floor movements |
-| ? Admin | *(private)* | Ñ | Full system + user management + ERP export |
+| Role     | Username         | Password        | Access                                    |
+|----------|------------------|-----------------|-------------------------------------------|
+| Visitor  | demo             | WIP-Demo-2026!  | Full dashboard, read-only                 |
+| Operator | (request access) | --              | All shop floor movements                  |
+| Admin    | (private)        | --              | Full system, user management, ERP export  |
 
-? **[Open Live Demo](https://wip.rodrigoandremarques.com)**
+[Open Live Demo](https://wip.rodrigoandremarques.com)
 
-> The system runs on Render's free tier Ñ first request after inactivity may take ~30 seconds to wake up.
+> The server runs on Render's free tier and sleeps after 15 minutes of inactivity. The first request after a period of inactivity may take 30-50 seconds to respond.
 
 ---
 
-## What the System Does
+## System Modules
 
-### 1. Production Order Lifecycle
-Create a Production Order for a finished product, release it to the shop floor, track it through operations, and close it on completion. Each status change (Created ? Released ? In Progress ? Completed ? Closed) is written to the blockchain.
+**1. Production Order Lifecycle**
+Full lifecycle management from creation to closure. Each status transition (Created -> Released -> In Progress -> Completed -> Closed) is written to the blockchain with timestamp and actor.
 
-### 2. WIP Board Ñ Real-Time Shop Floor View
-A live kanban-style board showing all active Work-in-Progress orders grouped by Work Center. Operators see exactly what is queued, active, and pending confirmation at each machine or assembly station.
+**2. WIP Board**
+Real-time shop floor view grouping active orders by Work Center. Operators see queue, active, and pending-confirmation states at each machine or assembly station.
 
-### 3. Material Flow (Goods Movements)
-The system tracks the full material journey:
-- **Goods Receiving** Ñ raw materials arrive from suppliers and are booked into stock
-- **Staging to Production** Ñ materials move from warehouse to production staging area
-- **Goods Issue** Ñ materials are consumed (issued) against a Production Order
-- **Backflush** Ñ automatic material consumption on operation confirmation
-- **Goods Receipt** Ñ finished goods are received into stock on order completion
-- **Transfer** Ñ internal stock transfers between locations or storage bins
-- **Scrap** Ñ material write-offs with reason codes
+**3. Material Flow**
+Complete goods movement coverage:
+- Goods Receiving -- inbound raw materials from suppliers
+- Staging to Production -- warehouse to production area transfers
+- Goods Issue -- material consumption against a production order
+- Backflush -- automatic consumption on operation confirmation
+- Goods Receipt -- finished goods into stock
+- Transfer -- internal stock movements between locations
+- Scrap -- material write-offs with reason codes
 
-### 4. Operation Confirmations
-Operators confirm each routing operation (e.g., Cutting ? Welding ? Assembly ? Painting) with actual quantities, yield, and scrap. Each confirmation records the operator name, work center, and timestamps.
+**4. Operation Confirmations**
+Per-operation confirmations with yield quantity, scrap, operator name, work center, and timestamp. Supports multi-operation routings (e.g., Cutting -> Welding -> Assembly -> Painting).
 
-### 5. Quality Management
-Process inspections are logged against Production Orders. QM results (pass/fail, measured values, inspector) are recorded as blockchain entries, providing a permanent quality record.
+**5. Quality Management**
+Process inspection records and final QM decisions logged against production orders. Permanent quality audit trail on the blockchain.
 
-### 6. Blockchain Audit Trail
-Every event generates a block: `previousHash + payload ? SHA-256 ? thisHash`. The chain is validated in real time. Any tamper attempt breaks the chain and is immediately flagged. Optional Ethereum/Polygon anchoring pins the local chain hash to a public blockchain for external verifiability.
+**6. Blockchain Ledger**
+Every event: previousHash + payload -> SHA-256 -> thisHash. Chain integrity is validated in real time. Any modification to historical data breaks the chain and is immediately detected. Optional Ethereum/Polygon anchoring is available for external verifiability.
 
-### 7. Material Master & Bill of Materials
-Maintain a material catalogue and multi-level Bills of Material (BOM). The BOM drives automatic component reservation and backflush calculations.
+**7. Material Master and Bill of Materials**
+Material catalogue with BOM maintenance. BOMs drive automatic component reservation and backflush quantity calculation.
 
-### 8. Work Centers & Routing
-Define Work Centers (machines, assembly lines, cells) with capacity and cost rates. Routings define the sequence of operations for each finished product, including standard times and work center assignments.
+**8. Work Centers and Routing**
+Work center definitions with capacity and cost rates. Routings define the operation sequence, work center assignments, and standard times for each finished product.
 
-### 9. Reports
-- WIP Inventory Summary (stock by material and location)
-- Movement History (filtered by date, material, order)
-- Order Status Report (all orders with quantities and status)
-- BOM Explosion Report
+**9. Reports**
+WIP inventory summary, movement history, order status, BOM explosion, and stock snapshot reports.
 
-### 10. ERP Bridge
-Admin-only REST endpoints expose production orders and movements in a structured JSON format ready for consumption by SAP, Oracle, or any ERP system via API integration.
+**10. ERP Bridge**
+Admin-only REST endpoints that expose production orders and movements in a structured JSON format for SAP, Oracle, or any external ERP system.
 
 ---
 
 ## Technology Stack
 
-| Layer | Technology | Notes |
-|-------|-----------|-------|
-| Backend | Node.js + Express.js | REST API, ~1,500 lines |
-| Blockchain | Custom SHA-256 chain | In-process, no external dependency |
-| Public Blockchain | Ethereum / Polygon (optional) | Anchors local chain hash on-chain |
-| Authentication | HTTP Basic Auth | SHA-256 hashed passwords, static salt |
-| Authorisation | Role-Based (admin / operator / visitor) | Per-endpoint enforcement |
-| Persistence | JSON flat files | Portable, zero-dependency storage |
-| Frontend | Vanilla JS + HTML/CSS | Single-page app, no framework |
-| Hosting | Render.com | Free tier, auto-deploy from GitHub |
-| Domain | wip.rodrigoandremarques.com | HTTPS via Let's Encrypt |
+| Layer          | Technology                      | Notes                               |
+|----------------|---------------------------------|-------------------------------------|
+| Backend        | Node.js + Express.js            | REST API, approx. 1,500 lines       |
+| Blockchain     | Custom SHA-256 chain            | In-process, no external dependency  |
+| Public chain   | Ethereum / Polygon (optional)   | Anchors local chain hash on-chain   |
+| Authentication | HTTP Basic Auth                 | SHA-256 hashed passwords            |
+| Authorisation  | Role-based (admin/operator/visitor) | Per-endpoint enforcement        |
+| Persistence    | JSON flat files                 | Portable, zero-dependency storage   |
+| Frontend       | Vanilla JS + HTML/CSS           | Single-page application             |
+| Hosting        | Render.com                      | Free tier, auto-deploy from GitHub  |
+| Domain         | wip.rodrigoandremarques.com     | HTTPS via Let's Encrypt             |
 
 ---
 
 ## Repository Structure
 
-This is a **documentation-only** repository. Source code is maintained privately.
+This is a documentation-only repository. Source code is maintained in a private repository.
 
-```
-/
-??? README.md                  ? This file
-??? docs/
-    ??? USER-GUIDE.md          ? How to use the system (operators & visitors)
-    ??? ARCHITECTURE.md        ? Technical design & data model
-    ??? API-REFERENCE.md       ? Full REST API documentation
-    ??? CONFIGURATION.md       ? Deployment & configuration guide
-```
+    /
+    +-- README.md                <- This file
+    +-- docs/
+        +-- USER-GUIDE.md        <- Step-by-step guide for operators and visitors
+        +-- ARCHITECTURE.md      <- System design, blockchain model, data flow
+        +-- API-REFERENCE.md     <- Full REST API reference
+        +-- CONFIGURATION.md     <- Deployment and configuration guide
 
 ---
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [User Guide](docs/USER-GUIDE.md) | Step-by-step guide for all user roles |
-| [Architecture](docs/ARCHITECTURE.md) | System design, blockchain model, data flow |
-| [API Reference](docs/API-REFERENCE.md) | Complete REST API with request/response examples |
-| [Configuration](docs/CONFIGURATION.md) | Environment variables, deployment, and setup |
+| Document                                  | Description                                        |
+|-------------------------------------------|----------------------------------------------------|
+| [User Guide](docs/USER-GUIDE.md)          | Step-by-step guide for all user roles              |
+| [Architecture](docs/ARCHITECTURE.md)      | System design, blockchain model, data model        |
+| [API Reference](docs/API-REFERENCE.md)    | Complete REST API with request/response examples   |
+| [Configuration](docs/CONFIGURATION.md)    | Environment variables, deployment, setup           |
 
 ---
 
 ## About
 
-Built by **Rodrigo Andre Marques** Ñ SAP S/4HANA PP/WM specialist and manufacturing systems architect.
+Built by **Rodrigo Andre Marques** -- SAP S/4HANA PP/WM specialist and manufacturing systems architect.
 
-- ? [rodrigoandremarques.com](https://rodrigoandremarques.com)
-- ? [Live System](https://wip.rodrigoandremarques.com)
+- Website: [rodrigoandremarques.com](https://rodrigoandremarques.com)
+- Live system: [wip.rodrigoandremarques.com](https://wip.rodrigoandremarques.com)
 
-*Source code in private repository. Documentation and live demo are public.*
+*Source code is in a private repository. This repository contains documentation and a public live demo.*
